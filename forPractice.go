@@ -17,7 +17,7 @@ for循环语句的语法和其他语言的类似(但是Go中在for语句后不�
 import "fmt"
 
 func main() {
-  // 声明变量 a 和 b (赋值为 5 )
+	// 声明变量 a 和 b (赋值为 5 )
 	var a int
 	var b int = 5
 
