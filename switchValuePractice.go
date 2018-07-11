@@ -37,6 +37,7 @@ func main()  {
 	}
 	fmt.Printf("你的等级为: %s \n",grade)
 
+
 }
 
 func getRandInt(min,max int) int {
