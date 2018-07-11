@@ -15,8 +15,8 @@ func main()  {
 		case 80: grade = "B"
 		case 70: grade = "C"
 		case 60: grade = "D"
-
 		default: grade = "F"
+		
 		// 若是想得到区间内的可用if else结构,这里只做switch例子
 		
 	}
