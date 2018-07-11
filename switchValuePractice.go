@@ -41,7 +41,7 @@ func main()  {
 
 func getRandInt(min,max int) int {
 	rand.Seed(time.Now().Unix()) // 时间戳的种子,很重要,否则只会获得同一个值
-	var randmark = ( rand.Intn (max - min) +min ) * 10 // 得到一个 50-90之间的正值
+	var randmark = ( rand.Intn (max - min) +min ) * 10 // 得到一个 50-90之间的以10为间隔的整值
 
 	fmt.Printf("分数是: %d \n",randmark)
 	return  randmark // 返回得到的随机数
