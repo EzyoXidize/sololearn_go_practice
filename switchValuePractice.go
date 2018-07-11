@@ -11,27 +11,27 @@ func main()  {
 	var marks int = getRandInt(5,10)
 
 	switch marks {
-		case 90: grade = "A"
-		case 80: grade = "B"
-		case 70: grade = "C"
-		case 60: grade = "D"
-		default: grade = "F"
+	case 90: grade = "A"
+	case 80: grade = "B"
+	case 70: grade = "C"
+	case 60: grade = "D"
+	default: grade = "F"
 		
-		// 若是想得到区间内的可用if else结构,这里只做switch例子
+	// 若是想得到区间内的可用if else结构,这里只做switch例子
 		
 	}
 
 	switch {
-		case grade == "A":
-			fmt.Printf("优秀\n")
-		case grade == "B", grade == "C":
-			fmt.Printf("良\n")
-		case grade == "D":
-			fmt.Printf("及格\n")
-		case grade == "F":
-			fmt.Printf("不及格\n")
-		default:
-			fmt.Printf("差\n")
+	case grade == "A":
+		fmt.Printf("优秀\n")
+	case grade == "B", grade == "C":
+		fmt.Printf("良\n")
+	case grade == "D":
+		fmt.Printf("及格\n")
+	case grade == "F":
+		fmt.Printf("不及格\n")
+	default:
+		fmt.Printf("差\n")
 
 		
 	}
