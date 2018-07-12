@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
-	"time"
+	"time"  // import time 库
 )
 
 func main(){
 	i := 2
-	fmt.Print("write",i,"as")
+	fmt.Print("write ",i," as ") // switch case 语句 practice
 	switch i {
 	case 1:
 		fmt.Println("one")
@@ -18,9 +18,9 @@ func main(){
 	}
 
 	switch time.Now().Weekday() {
-	case time.Saturday,time.Sunday:
+	case time.Saturday,time.Sunday:  // 用 switch  case 语句判断条件
 		fmt.Println("its the weekend")
-	default:
+	default:			// 默认值
 		fmt.Println("its the weekday")
 
 	}
@@ -35,3 +35,13 @@ func main(){
 	
 	}
 }
+
+/*
+
+返回的结果举例
+
+write 2 as two
+its the weekday
+its the morning
+
+*/
