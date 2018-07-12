@@ -17,7 +17,7 @@ func main()  {
 	// 利用range求一个slice的和, 若是用数组方法可类似,此处不需要用到索引key的值,所以前面用 "_" 省略掉了,需要索引值时候下面例子
 	nums := []int{2,3,4}
 	sum := 0
-	for _, num := range nums {
+	for _, num := range nums { // _,num _为空白占位 , 忽略
 		sum += num
 	}
 
@@ -26,7 +26,7 @@ func main()  {
 	// 需要知道索引值时候, 用range 传入 index和值两个变量
 	for i,num := range nums{
 		if num == 3 {
-			fmt.Printf("index:",i)
+			fmt.Printf("index: %d \n",i)
 			
 		}
 	}
@@ -43,3 +43,17 @@ func main()  {
 	}
 
 }
+
+
+/*
+
+Result:
+
+sum =  9
+index: 1 
+a --> apple 
+b --> banana 
+0 103
+1 111
+
+*/
