@@ -1,124 +1,118 @@
 package main
 
 import (
-	"database/sql"
-	_ "github.com/go-sql-driver/mysql"
+	"net/http"
 	"fmt"
-
-	"log"
-
+	"io/ioutil"
+	"github.com/go-xorm/xorm"
+	_ "github.com/go-sql-driver/mysql"
+	"encoding/json"
 )
 
+type Server struct {
+}
 
-type request struct {
-	requests []byte
+type Person struct {
+	id 		int 		`xorm:"not null pk autoincr int"`
+	name 	string		`xorm:"not null VARCHAR(100)"`
+}
+
+var engine *xorm.Engine
+
+func main()  {
+	var err error
+	http.HandleFunc("/",requestsHandler)
+
+	err = http.ListenAndServe(":8000", nil)
+
+	if err != nil {
+		fmt.Println("ListenAndServe error: ", err.Error())
+	}
+	
 }
 
 
+func requestsHandler(w http.ResponseWriter, r *http.Request)  {
 
-const DB_driver  = "root:123456@tcp(localhost:3306)/testdb?charset=utf8"
+	engine, err := xorm.NewEngine("mysql", "root:123456@/xorm?charset=utf8")
 
-
-func (r request ) findsql(db *sql.DB)  {
-	rows, err := db.Query("SELECT * FROM students")
 	if err != nil {
-		fmt.Println("error:", err)
-	} else {
+		fmt.Println(err)
+		return
 	}
-	for rows.Next() {
-		var id 		int
-		var sname   string
-		var gender 	int
-		var class 	int
-		err = rows.Scan(&id,&sname,&gender,&class)
-		fmt.Printf("id:%d  name : %s  gender: %d  class : %d\n",id,sname,gender,class)
+
+	if err := engine.Ping() ; err != nil {
+
+		fmt.Println(err)
+
+		return
 	}
-	return
+
+	engine.ShowSQL(true)
+	engine.SetMaxIdleConns(5)
+	engine.SetMaxOpenConns(5)
+
+
+	r.ParseForm()
+	method, found3 := r.Form["Method"]
+	name, found2 := r.Form["name"]
+	id, found1 := r.Form["id"]
+
+
+	result,_ := ioutil.ReadAll(r.Body)
+	r.Body.Close()
+	fmt.Println("%s\n",result)
+
+
+	bytes,_ := json.Marshal(result)
+	fmt.Fprint(w, string(bytes))
+	
+	person := new(Person)
+
+	person.findsql(engine,person)
+	//person.insertsql(engine,person)
+	//person.deletesql(engine,person)
+	//person.updatesql(engine,person)
+
 }
 
 
-func (r request) insertsql(db *sql.DB,idnum int,sname string,gendernum int, classnum int)  {
-	stmt,err := db.Prepare("INSERT INTO students(id,sname,gender,class) values(?,?,?,?)")
+func (p *Person) findsql(engine *xorm.Engine,person *Person)  {
+
+	result,err := engine.Where("id=?",1).Get(person)
 	if err != nil {
-		fmt.Println("stmt error")
+		fmt.Println("find error")
 	}
-
-	result,err := stmt.Exec(idnum,sname,gendernum,classnum)
-	if err != nil {
-		fmt.Println("exec error")
-
-	}
-	lastInsertId, err := result.LastInsertId()
-	rowsAffected, err := result.RowsAffected()
-	fmt.Println("lastInsertId", lastInsertId)
-	fmt.Println("影响的行数：", rowsAffected)
-
+	fmt.Println(result)
 }
 
 
-func (r request) updatesql(db *sql.DB,classnum int,idnum int)  {
-	stmt,err := db.Prepare("update students set class = ? WHERE students.id=?")
+func (p *Person) insertsql(engine *xorm.Engine,person *Person)  {
 
+	affected,err := engine.Insert(person)
 	if err != nil {
-		fmt.Println("update error")
+		fmt.Println("insert error")
 	}
-	//changelow,err := stmt.RowsAffected()
-	//if err != nil {
-	//}
-	stmt.Exec(classnum,idnum)
-	//fmt.Println("共计",changelow,"行受到影响")
-
+	fmt.Println(affected)
 }
 
-func (r request) deletesql(db *sql.DB,num int)  {
-	stmt,err := db.Prepare("delete from students where students.id=?")
+
+func (p *Person) deletesql(engine *xorm.Engine,person *Person)  {
+
+	affected_delete , err := engine.Delete(person)
 	if err != nil {
 		fmt.Println("delete error")
 	}
-	stmt.Exec(num)
-
+	fmt.Println(affected_delete)
 }
 
-func main() {
 
-	req := new(request)
+func (p *Person) updatesql(engine *xorm.Engine,person *Person)  {
 
-	db, err := sql.Open("mysql", DB_driver)
+
+	affected_update,err := engine.Id(1).Update(person)
 	if err != nil {
-		log.Fatalf("Open database error: %s\n", err)
+		fmt.Println("update error")
 	}
-	defer db.Close()
-
-	err = db.Ping()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-
-	//req.insertsql(db,142,"xiaoqq",0,14)
-	//req.deletesql(db,141)
-	// req.updatesql(db,classnum,idnum)
-
-	req.findsql(db)
-
+	fmt.Println(affected_update)
 }
-
-
-/*
-func postrequest(postreq []byte) request {
-	select {
-	case reqRe,err := regexp.MustCompile( `(SELECT [*]+ FROM students)`):
-		reqs := reqRe.Find(postreq)
-		if err != nil {
-			fmt.Println("req error")
-		result := request{}
-		result.requests = append(reqs)
-
-		}
-
-	case reqRe,err := regexp.MustCompile(``)
-
-	}
-}
-*/
-
