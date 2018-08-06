@@ -6,10 +6,13 @@ import (
 	"github.com/go-xorm/xorm"
 	_ "github.com/go-sql-driver/mysql"
 	"encoding/json"
+	"context"
 
+	"fmt"
 )
 
 type TestService struct {
+
 }
 
 type Service interface {
@@ -21,9 +24,12 @@ type Service interface {
 	MohuGet()
 }
 
-type proto interface {
-	TestListIn
-	TestListOut
+type proto struct {
+	TestListIn	string `json:"test_list_in"`
+	TestListOut	string
+	Test		string
+	PageRows	string
+	PageStart 	string
 }
 
 type Test struct {
@@ -36,11 +42,10 @@ type TestListIn interface {
 type TestListOut interface {
 }
 
-type context struct {
-	Context string
-}
 
 func main() {
+
+	var proto proto
 	http.HandleFunc("/",Handlers)
 }
 
@@ -52,18 +57,27 @@ var engine *xorm.Engine
 
 
 func (tc *TestService) List(ctx context.Context, in *proto.TestListIn, out *proto.TestListOut) error {
-	total, err := database.DbEngine.Count(new(proto.Test))
+
+	total, err := engine.Get(new(proto.Test))
 	if err != nil {
-		return HandleErr(err)
+		//return HandleErr(err)
+		fmt.Println("获取列表错误")
 	}
 
 	data := make([]*proto.Test, 0)
-	err = database.DbEngine.Limit(int(in.PageRows), int(in.PageStart)).Find(&data)
+
+	// results, err := engine.Sql(sql).Query().ListPage(1,50)
+
+	// err = database.DbEngine.Limit(int(in.PageRows), int(in.PageStart)).Find(&data)
+	err = engine.Limit(int(in.PageRows),int(in.PageStart)).Find(&data)
+
 	if err != nil {
-		return HandleErr(err)
+		//return HandleErr(err)
+		fmt.Println("分页列表错误")
 	}
 	out.Total = total
 	out.Data = data
+
 	return nil
 }
 
@@ -73,7 +87,10 @@ func (tc *TestService) Get(ctx context.Context, in *proto.IdIn, out *proto.TestG
 	}
 
 	test := new(proto.Test)
-	has, err := database.DbEngine.Where("id = ?", in.Id).Get(test)
+	//has, err := database.DbEngine.Where("id = ?", in.Id).Get(test)
+
+	has, err := engine.Where("id = ?", in.Id).Get(test)
+
 	if err != nil {
 		return HandleErr(err)
 	}
@@ -89,9 +106,10 @@ func (tc *TestService) MohuGet(ctx context.Context, in *proto.IdIn, out *proto.T
 	if in.Id == "" {
 		return Error("miss id")
 	}
-
+	
 	test := new(proto.Test)
-	has, err := database.DbEngine.Where("id = ?", in.Id).Get(test)
+
+	has, err := engine.Where("column like ?", "%"+char+"%").Find
 	if err != nil {
 		return HandleErr(err)
 	}
@@ -166,3 +184,4 @@ func (tc *TestService) Update(ctx context.Context, in *proto.TestUpdateIn, out *
 	out.Success = true
 	return nil
 }
+
