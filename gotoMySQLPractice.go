@@ -9,15 +9,12 @@ import (
 	"encoding/json"
 )
 
-type Server struct {
-}
 
 type Person struct {
-	id 		int 		`xorm:"not null pk autoincr int"`
-	name 	string		`xorm:"not null VARCHAR(100)"`
+	Id 		int 		`xorm:"not null pk autoincr int"`
+	Name 	string		`xorm:"not null VARCHAR(100)"`
 }
 
-var engine *xorm.Engine
 
 func main()  {
 	var err error
@@ -28,12 +25,13 @@ func main()  {
 	if err != nil {
 		fmt.Println("ListenAndServe error: ", err.Error())
 	}
-	
+
 }
 
 
 func requestsHandler(w http.ResponseWriter, r *http.Request)  {
 
+	var engine *xorm.Engine
 	engine, err := xorm.NewEngine("mysql", "root:123456@/xorm?charset=utf8")
 
 	if err != nil {
@@ -54,32 +52,27 @@ func requestsHandler(w http.ResponseWriter, r *http.Request)  {
 
 
 	r.ParseForm()
-	method, found3 := r.Form["Method"]
-	name, found2 := r.Form["name"]
-	id, found1 := r.Form["id"]
-
 
 	result,_ := ioutil.ReadAll(r.Body)
 	r.Body.Close()
-	fmt.Println("%s\n",result)
+	fmt.Println("%s\n" , result)
 
-
-	bytes,_ := json.Marshal(result)
-	fmt.Fprint(w, string(bytes))
-	
-	person := new(Person)
+	var person  Person
+	json.Unmarshal(result, &person)
 
 	person.findsql(engine,person)
 	//person.insertsql(engine,person)
 	//person.deletesql(engine,person)
 	//person.updatesql(engine,person)
 
+	w.Write([]byte("well done"))
+
 }
 
 
-func (p *Person) findsql(engine *xorm.Engine,person *Person)  {
+func (p *Person) findsql(engine *xorm.Engine,person Person)  {
 
-	result,err := engine.Where("id=?",1).Get(person)
+	result,err := engine.Where("id=?",person.Id).Get(person)
 	if err != nil {
 		fmt.Println("find error")
 	}
@@ -87,7 +80,7 @@ func (p *Person) findsql(engine *xorm.Engine,person *Person)  {
 }
 
 
-func (p *Person) insertsql(engine *xorm.Engine,person *Person)  {
+func (p *Person) insertsql(engine *xorm.Engine,person Person)  {
 
 	affected,err := engine.Insert(person)
 	if err != nil {
@@ -97,22 +90,22 @@ func (p *Person) insertsql(engine *xorm.Engine,person *Person)  {
 }
 
 
-func (p *Person) deletesql(engine *xorm.Engine,person *Person)  {
+func (p *Person) deletesql(engine *xorm.Engine,person Person)  {
 
-	affected_delete , err := engine.Delete(person)
+	affectedDelete , err := engine.Where("id=?",person.Id).Delete(person)
 	if err != nil {
 		fmt.Println("delete error")
 	}
-	fmt.Println(affected_delete)
+	fmt.Println(affectedDelete)
 }
 
 
-func (p *Person) updatesql(engine *xorm.Engine,person *Person)  {
+func (p *Person) updatesql(engine *xorm.Engine,person Person)  {
 
 
-	affected_update,err := engine.Id(1).Update(person)
+	affectedUpdate,err := engine.Where("id=?",person.Id).Update(person)
 	if err != nil {
 		fmt.Println("update error")
 	}
-	fmt.Println(affected_update)
+	fmt.Println(affectedUpdate)
 }
