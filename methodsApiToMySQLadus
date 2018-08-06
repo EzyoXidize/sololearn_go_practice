@@ -1,0 +1,168 @@
+package main
+
+import (
+	"strings"
+	"net/http"
+	"github.com/go-xorm/xorm"
+	_ "github.com/go-sql-driver/mysql"
+	"encoding/json"
+
+)
+
+type TestService struct {
+}
+
+type Service interface {
+	List (context.Context, *proto.TestListIn, *proto.TestListOut) error
+	Get( context.Context,  *proto.IdIn,  *proto.TestGetOut) error
+	Add( context.Context,  *proto.TestAddIn,  *proto.TestAddOut) error
+	Delete(context.Context, *proto.IdIn,  *proto.CommonOut) error
+	Update( context.Context, *proto.TestUpdateIn,  *proto.CommonOut) error
+	MohuGet()
+}
+
+type proto interface {
+	TestListIn
+	TestListOut
+}
+
+type Test struct {
+
+}
+type TestListIn interface {
+}
+
+
+type TestListOut interface {
+}
+
+type context struct {
+	Context string
+}
+
+func main() {
+	http.HandleFunc("/",Handlers)
+}
+
+func Handlers(w http.ResponseWriter,r *http.Request)  {
+
+}
+
+var engine *xorm.Engine
+
+
+func (tc *TestService) List(ctx context.Context, in *proto.TestListIn, out *proto.TestListOut) error {
+	total, err := database.DbEngine.Count(new(proto.Test))
+	if err != nil {
+		return HandleErr(err)
+	}
+
+	data := make([]*proto.Test, 0)
+	err = database.DbEngine.Limit(int(in.PageRows), int(in.PageStart)).Find(&data)
+	if err != nil {
+		return HandleErr(err)
+	}
+	out.Total = total
+	out.Data = data
+	return nil
+}
+
+func (tc *TestService) Get(ctx context.Context, in *proto.IdIn, out *proto.TestGetOut) error {
+	if in.Id == "" {
+		return Error("miss id")
+	}
+
+	test := new(proto.Test)
+	has, err := database.DbEngine.Where("id = ?", in.Id).Get(test)
+	if err != nil {
+		return HandleErr(err)
+	}
+	if has == false {
+		return SystemError()
+	}
+
+	out.Test = test
+	return nil
+}
+
+func (tc *TestService) MohuGet(ctx context.Context, in *proto.IdIn, out *proto.TestGetOut) error {
+	if in.Id == "" {
+		return Error("miss id")
+	}
+
+	test := new(proto.Test)
+	has, err := database.DbEngine.Where("id = ?", in.Id).Get(test)
+	if err != nil {
+		return HandleErr(err)
+	}
+	if has == false {
+		return SystemError()
+	}
+
+	out.Test = test
+	return nil
+}
+
+func (tc *TestService) Add(ctx context.Context, in *proto.TestAddIn, out *proto.TestAddOut) error {
+	if strings.Trim(in.Name, " ") == "" {
+		return Error("输入姓名")
+	}
+	newTest := new(proto.Test)
+	newTest.Id = util.GetUUID()
+	newTest.Name = in.Name
+	newTest.Status = proto.Status_NORMAL
+	_, err := database.DbEngine.Insert(newTest)
+	if err != nil {
+		return HandleErr(err)
+	}
+	out.Id = newTest.Id
+	return nil
+}
+
+func (tc *TestService) Delete(ctx context.Context, in *proto.IdIn, out *proto.CommonOut) error {
+	if in.Id == "" {
+		return Error("miss id")
+	}
+
+	test := new(proto.Test)
+	has, err := database.DbEngine.Where("id = ?", in.Id).Get(test)
+	if err != nil {
+		return HandleErr(err)
+	}
+	if has == false {
+		return SystemError()
+	}
+	database.DbEngine.Id(in.Id).Delete(&proto.Test{})
+
+	out.Success = true
+	return nil
+}
+
+func (tc *TestService) Update(ctx context.Context, in *proto.TestUpdateIn, out *proto.CommonOut) error {
+	if in.Id == "" {
+		return Error("miss id")
+	}
+
+	if strings.Trim(in.Name, " ") == "" {
+		return Error("输入姓名")
+	}
+
+	test := new(proto.Test)
+	has, err := database.DbEngine.Where("id = ?", in.Id).Get(test)
+	if err != nil {
+		return HandleErr(err)
+	}
+	if has == false {
+		return SystemError()
+	}
+
+	test.Name = in.Name
+
+	_, err = database.DbEngine.Id(test.Id).MustCols("name").Update(test)
+	if err != nil {
+		return HandleErr(err)
+	}
+
+	out.Success = true
+	return nil
+}
