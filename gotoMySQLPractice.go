@@ -11,6 +11,7 @@ import (
 
 
 type Person struct {
+	Methods string
 	Id 		int 		`xorm:"not null pk autoincr int"`
 	Name 	string		`xorm:"not null VARCHAR(100)"`
 }
@@ -55,22 +56,29 @@ func requestsHandler(w http.ResponseWriter, r *http.Request)  {
 
 	result,_ := ioutil.ReadAll(r.Body)
 	r.Body.Close()
-	fmt.Println("%s\n" , result)
+	fmt.Printf("%s\n" , result)
 
 	var person  Person
 	json.Unmarshal(result, &person)
 
-	person.findsql(engine,person)
-	//person.insertsql(engine,person)
-	//person.deletesql(engine,person)
-	//person.updatesql(engine,person)
+	if person.Methods == "select" {
+		person.findSQL(engine, person)
+	}else if person.Methods == "insert" {
+		person.insertSQL(engine, person)
+	}else if person.Methods == "delete" {
+		person.deleteSQL(engine, person)
+	}else if person.Methods == "update" {
+		person.updateSQL(engine, person)
+	}else {
+		fmt.Println("error method")
+	}
 
 	w.Write([]byte("well done"))
 
 }
 
 
-func (p *Person) findsql(engine *xorm.Engine,person Person)  {
+func (p *Person) findSQL(engine *xorm.Engine,person Person)  {
 
 	result,err := engine.Where("id=?",person.Id).Get(person)
 	if err != nil {
@@ -80,7 +88,7 @@ func (p *Person) findsql(engine *xorm.Engine,person Person)  {
 }
 
 
-func (p *Person) insertsql(engine *xorm.Engine,person Person)  {
+func (p *Person) insertSQL(engine *xorm.Engine,person Person)  {
 
 	affected,err := engine.Insert(person)
 	if err != nil {
@@ -90,7 +98,7 @@ func (p *Person) insertsql(engine *xorm.Engine,person Person)  {
 }
 
 
-func (p *Person) deletesql(engine *xorm.Engine,person Person)  {
+func (p *Person) deleteSQL(engine *xorm.Engine,person Person)  {
 
 	affectedDelete , err := engine.Where("id=?",person.Id).Delete(person)
 	if err != nil {
@@ -100,7 +108,7 @@ func (p *Person) deletesql(engine *xorm.Engine,person Person)  {
 }
 
 
-func (p *Person) updatesql(engine *xorm.Engine,person Person)  {
+func (p *Person) updateSQL(engine *xorm.Engine,person Person)  {
 
 
 	affectedUpdate,err := engine.Where("id=?",person.Id).Update(person)
