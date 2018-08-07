@@ -1,0 +1,353 @@
+package main
+
+import (
+	"net/http"
+	"fmt"
+	"io/ioutil"
+	"github.com/go-xorm/xorm"
+	_ "github.com/go-sql-driver/mysql"
+	"encoding/json"
+
+	"strings"
+
+	"golang.org/x/net/context"
+	"strconv"
+	"github.com/astaxie/beego"
+)
+
+type postOrder interface {
+
+}
+
+type Orders struct {
+	Test
+	TestListIn				`json:"test_list_in"`
+	IdIn					`json:"idin"`
+	TestAddIn				`json:"test_add_in"`
+	TestUpdateIn			`json:"test_update_in"`
+	TestListOut				`json:"test_list_out"`
+	TestGetOut				`json:"test_get_out"`
+	TestAddOut				`json:"test_add_in"`
+	CommonOut				`json:"common_out"`
+	postOrder
+}
+
+
+type TestListIn struct {
+	Id 			string		`json:"id"`
+	Name  		string 		`json:"name"`
+	PageRows	string		`json:"page_rows"`
+	PageStart 	string		`json:"page_start"`
+	Chars		string		`json:"chars"`
+}
+type TestUpdateIn struct {
+	Name  		string		`json:"name"`
+	Id 			string		`json:"id"`
+
+}
+
+type TestAddIn struct {
+	Name  		string		`json:"name"`
+}
+
+type IdIn struct {
+	Id			string			`json:"id"`
+}
+
+type TestListOut struct {
+	Data 	[]string
+	Total	bool
+	Success bool
+}
+
+type TestGetOut struct {
+
+}
+
+type TestAddOut struct {
+
+}
+type CommonOut struct {
+
+}
+
+type Test struct {
+	Id 		string 		`json:"id" xorm:"not null pk autoincr int 'id'"`
+	Name 	string		`json:"name" xorm:"not null VARCHAR(100) 'name'"`
+}
+
+type Person struct {
+	Id 		string 		`json:"id" xorm:"not null pk autoincr int 'id'"`
+	Name 	string		`json:"name" xorm:"not null VARCHAR(100) 'name'"`
+}
+
+type TestService struct {
+}
+
+var engine *xorm.Engine
+
+func init() {
+	var err error
+	engine, err = xorm.NewEngine("mysql", "root:123456@tcp(127.0.0.1:3306)/testdb?charset=utf8")
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	if err := engine.Ping() ; err != nil {
+		fmt.Println(err)
+		return
+	}
+}
+
+
+func main() {
+
+	engine.TableInfo(Person{})
+
+	engine.ShowSQL(true)
+	engine.SetMaxIdleConns(5)
+	engine.SetMaxOpenConns(5)
+	http.HandleFunc("/", requestsHandler)
+
+	err := http.ListenAndServe("localhost:8000", nil)
+
+	if err != nil {
+		fmt.Println("ListenAndServe error: ", err.Error())
+	}
+
+}
+
+type dualError struct {
+	Code    	 int
+	Detail		 string
+}
+// func handleErr(err error)(int,error) {
+// 	if n&1 == 1 {
+//		 return -1, dualError{Code: n}
+//	}
+//	return n,nil
+//}
+
+func Error(err error)  {
+
+}
+
+func requestsHandler(w http.ResponseWriter, r *http.Request)  {
+
+	r.ParseForm()
+	result, _ := ioutil.ReadAll(r.Body)
+
+	fmt.Printf("%s\n", result)
+
+	err := json.Unmarshal(result, &Orders{})
+
+	if err != nil {
+		fmt. Println ( "error:" , err )
+	}
+
+	tc := TestService{}
+	tc1 := &tc
+
+	var orders *Orders
+
+	tc1.GetSQL(context.Background(),orders)
+	tc1.LikeListSQL(context.Background(),orders,orders)
+	tc1.InsertSQL(context.Background(),orders,)
+	tc1.DeleteSQL(context.Background(),orders)
+	tc1.UpdateSQL(context.Background(),orders,orders)
+	tc1.ListSQL(context.Background(),orders,orders)
+
+	w.Write([]byte(""))
+
+}
+
+
+func (tc *TestService) ListSQL(ctx context.Context,in *Orders,out *Orders) error {
+
+	total, err := engine.Get(new(Orders))
+
+	if err != nil {
+
+		fmt.Println("获取列表错误")
+		//return handleErr(err)
+	}
+
+	data := make([]*Test, 0)
+
+	// results, err := engine.Sql(sql).Query().ListPage(1,50)
+
+	// err = database.DbEngine.Limit(int(in.PageRows), int(in.PageStart)).Find(&data)
+	inpagerows,err:=strconv.Atoi(in.PageRows)
+	if err != nil {
+
+	}
+
+	inpagstart,err:=strconv.Atoi(in.PageStart)
+	if err != nil {
+
+	}
+
+	err = engine.Limit(inpagerows,inpagstart).Find(&data)
+
+	if err != nil {
+		//return HandleErr(err)
+		fmt.Println("分页列表错误")
+	}
+	out.Total = total
+
+	jsondata,err := json.Marshal(out.Data)
+	fmt.Println(string(jsondata))
+
+	return nil
+}
+
+func (tc *TestService) GetSQL(ctx context.Context,in *Orders) error {
+
+	_, err := engine.Get(new(Test))
+
+	if err != nil {
+		//return HandleErr(err)
+		fmt.Println("获取列表错误")
+	}
+
+	id,err:=strconv.Atoi(in.TestListIn.Id)
+	if err != nil {
+
+	}
+
+	result,err := engine.Where("id=?",id).Get(in)
+
+	if err != nil {
+		fmt.Println("查询列表错误")
+		return beego.ErrorController()
+	}
+
+	json.Marshal(result)
+
+	return nil
+
+}
+
+
+func (tc *TestService) InsertSQL(ctx context.Context,in *Orders) error {
+
+	if strings.Trim(in.TestListIn.Name, " ") == "" {
+
+		fmt.Println("请输入姓名")
+	}
+
+
+	affected,err := engine.Insert(in)
+
+	if err != nil {
+		fmt.Println("insert error")
+	}
+
+	tableData := make([]map[string]interface{}, 0)
+
+	fmt.Println(affected)
+
+	jsonData,err := json.Marshal(tableData)
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(jsonData))
+
+	return nil
+
+}
+
+
+func (tc *TestService) DeleteSQL(ctx context.Context,in *Orders)  {
+
+	if  in.IdIn.Id == "" {
+		//return Error("miss id")
+		fmt.Println("缺少 id")
+	}
+
+
+	affectedDelete , err := engine.Where("id=?",in.IdIn.Id).Delete(in)
+
+	if err != nil {
+		fmt.Println("delete error")
+	}
+
+	fmt.Println(affectedDelete)
+}
+
+
+func (tc *TestService) UpdateSQL(ctx context.Context,in *Orders,out *Orders) error {
+
+	if in.TestUpdateIn.Id == "" {
+		fmt.Println("请输入 id")
+
+	}
+
+	if strings.Trim(in.TestUpdateIn.Id, " ") == "" {
+		fmt.Println("请输入姓名")
+		// return Error("输入姓名")
+	}
+
+	affectedUpdate,err := engine.Where("id=?",in.TestUpdateIn.Id).Update(in)
+
+	if err != nil {
+		fmt.Println("update error")
+	}
+
+	fmt.Println(affectedUpdate)
+
+	has,err := engine.Where("id=?",in.TestUpdateIn.Id).Get(in)
+
+	if err != nil {
+		//return HandleErr(err)
+		fmt.Println("查询错误")
+	}
+	if has == false {
+		//return SystemError()
+	}
+
+	test := new(Test)
+	test.Name = in.TestUpdateIn.Name
+
+	_, err = engine.Id(test.Id).MustCols("name").Update(test)
+	if err != nil {
+		//return HandleErr(err)
+		fmt.Println("")
+	}
+
+	out.Success = true
+
+	return nil
+}
+
+func (tc *TestService) LikeListSQL(ctx context.Context,in *Orders, out *Orders) error  {
+
+	total, err := engine.Get(new(Test))
+
+	if err != nil {
+		//return HandleErr(err)
+		fmt.Println("获取列表错误")
+	}
+	test := new(Test)
+
+	//has, err := engine.Where("column like ?", "%"+in.char+"%").Find
+	has,err := engine.Where("column like ?", "%"+in.Chars+"%").Get(&test)
+	if err != nil {
+		//return HandleErr(err)
+		fmt.Println("")
+	}
+
+	if has == false {
+		//return SystemError()
+		fmt.Println("错误")
+	}
+
+	engine.Where("column like ?" ,"%"+in.Chars+"%").Find(&test)
+
+	out.Total = total
+
+	return nil
+}
+
