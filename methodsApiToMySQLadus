@@ -17,7 +17,8 @@ type students struct {
 }
 
 type studentslice struct {
-	reqStu []students
+	ReqStu []students
+	ReqID	string
 }
 
 
@@ -62,46 +63,54 @@ func insertSQL(w http.ResponseWriter, r *http.Request)  {
 		fmt.Fprintf(w,"请求错误")
 	}
 
-	defer r.Body.Close()
+	r.Body.Close()
 
 	var s studentslice
 	json.Unmarshal([]byte(result),&s)
-	fmt.Println(s.reqStu)
+	fmt.Println(s.ReqStu)
 
-	affected, err := engines.Insert(s.reqStu)
+	affected, err := engines.Insert(s.ReqStu)
 
-	for i := 0; i < len(s.reqStu); i++ {
-
-
-		fmt.Println(s.reqStu[i].Id)
-		fmt.Println(s.reqStu[i].Name)
-		fmt.Println(s.reqStu[i].Gender)
-		fmt.Println(s.reqStu[i].Class)
-
-		fmt.Fprintf(w,"插入第 %d 号 ,student 姓名 : %s ,性别 : %d , 班级 : %d\n",s.reqStu[i].Id,s.reqStu[i].Name,s.reqStu[i].Gender,s.reqStu[i].Class)
+	//for i := 0; i < len(s.reqStu); i++ {
 
 
+	//	fmt.Println(s.reqStu[i].Id)
+	//	fmt.Println(s.reqStu[i].Name)
+	//	fmt.Println(s.reqStu[i].Gender)
+	//	fmt.Println(s.reqStu[i].Class)
+
+	//fmt.Fprintf(w,"插入第 %d 号 ,student 姓名 : %s ,性别 : %d , 班级 : %d\n",s.reqStu[i].Id,s.reqStu[i].Name,s.reqStu[i].Gender,s.reqStu[i].Class)
+
+
+	//	if err != nil {
+	//		return
+	//	}
+
+	//	fmt.Println(affected)
+	//}
+	/*
+		stu := new(students)
+		stu.Id = 150
+		stu.Name = "xiaolvlv"
+		stu.Gender = 0
+		stu.Class = 13
+		_, err := engines.Insert(stu)
 		if err != nil {
 			return
 		}
-
-		fmt.Println(affected)
-	}
-/*
-	stu := new(students)
-	stu.Id = 150
-	stu.Name = "xiaolvlv"
-	stu.Gender = 0
-	stu.Class = 13
-	_, err := engines.Insert(stu)
+	*/
+	test := new(students)
+	test.Id = 200
+	test.Name = "erkang"
+	test.Gender = 1
+	test.Class = 13
+	_, err = engines.Insert(test)
 	if err != nil {
-		return
+
 	}
-*/
-
-	fmt.Fprintf(w,"插入第 %d 号 ,student 姓名 : %s ,性别 : %d , 班级 : %d\n",s.reqStu[0].Id,s.reqStu[0].Name,s.reqStu[0].Gender,s.reqStu[0].Class)
-
-	w.Write([]byte("insert finised"))
+	fmt.Fprintf(w,string(affected))
+	fmt.Fprintf(w,"插入第 %d 号 ,student 姓名 : %s ,性别 : %d , 班级 : %d\n",s.ReqStu[0].Id,s.ReqStu[0].Name,s.ReqStu[0].Gender,s.ReqStu[0].Class)
+	fmt.Fprintf(w,"插入第 %d 号 ,student 姓名 : %s ,性别 : %d , 班级 : %d\n",test.Id,test.Name,test.Gender,test.Class)
 
 
 }
@@ -123,20 +132,20 @@ func getSQL(w http.ResponseWriter, r *http.Request)  {
 
 	var s studentslice
 	json.Unmarshal([]byte(result),&s)
-	fmt.Println(s.reqStu)
+	fmt.Println(s.ReqStu)
 
 	//stu := new(students)
 	//stu.Id = 123
 
-	has,err := engines.Where("id=?",s.reqStu[0].Id).Get(s.reqStu)
+	has,err := engines.Where("id=?",s.ReqStu[0].Id).Get(s.ReqStu)
 
 	if err != nil {
 		return
 	}
 	if has == true {
 		fmt.Println(has)
-		fmt.Println(s.reqStu)
-		fmt.Fprintf(w,"get 第 %d 号 ,student 姓名 : %s ,性别 : %d , 班级 : %d",s.reqStu[0].Id,s.reqStu[0].Name,s.reqStu[0].Gender,s.reqStu[0].Class)
+		fmt.Println(s.ReqStu)
+		fmt.Fprintf(w,"get 第 %d 号 ,student 姓名 : %s ,性别 : %d , 班级 : %d",s.ReqStu[0].Id,s.ReqStu[0].Name,s.ReqStu[0].Gender,s.ReqStu[0].Class)
 
 	}else{
 		fmt.Fprintf(w," 不存在的 ID , 错误代码 ",err)
@@ -161,9 +170,9 @@ func deleteSQL(w http.ResponseWriter, r *http.Request)  {
 
 	var s studentslice
 	json.Unmarshal([]byte(result),&s)
-	fmt.Println(s.reqStu)
+	fmt.Println(s.ReqStu)
 
-	affectedDelete, err := engines.Where("id=?",s.reqStu[0].Id).Delete(s.reqStu)
+	affectedDelete, err := engines.Where("id=?",s.ReqStu[0].Id).Delete(s.ReqStu)
 
 	if err != nil {
 		fmt.Println("delete error")
