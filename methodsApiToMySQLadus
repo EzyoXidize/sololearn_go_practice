@@ -1,187 +1,293 @@
 package main
-
 import (
-	"strings"
-	"net/http"
-	"github.com/go-xorm/xorm"
-	_ "github.com/go-sql-driver/mysql"
-	"encoding/json"
-	"context"
-
 	"fmt"
+	"net/http"
+	_"github.com/go-sql-driver/mysql"
+	"github.com/go-xorm/xorm"
+
+	"encoding/json"
+	"io/ioutil"
 )
 
-type TestService struct {
-
+type students struct {
+	Id 		int 		`json:"id" xorm:"not null pk int 'id'"`
+	Name 	string		`json:"name" xorm:"not null VARCHAR(100) 'sname'"`
+	Gender 	int			`json:"gender" xorm:"not null int 'gender'"`
+	Class	int			`json:"class" xorm:"not null int 'class'"`
 }
 
-type Service interface {
-	List (context.Context, *proto.TestListIn, *proto.TestListOut) error
-	Get( context.Context,  *proto.IdIn,  *proto.TestGetOut) error
-	Add( context.Context,  *proto.TestAddIn,  *proto.TestAddOut) error
-	Delete(context.Context, *proto.IdIn,  *proto.CommonOut) error
-	Update( context.Context, *proto.TestUpdateIn,  *proto.CommonOut) error
-	MohuGet()
-}
-
-type proto struct {
-	TestListIn	string `json:"test_list_in"`
-	TestListOut	string
-	Test		string
-	PageRows	string
-	PageStart 	string
-}
-
-type Test struct {
-
-}
-type TestListIn interface {
+type studentslice struct {
+	reqStu []students
 }
 
 
-type TestListOut interface {
+var engines *xorm.Engine
+
+func init() {
+
+	var err error
+	engines, err = xorm.NewEngine("mysql", "root:123456@tcp(127.0.0.1:3306)/testdb?charset=utf8")
+
+	engines.ShowSQL(true)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	if err := engines.Ping() ; err != nil {
+		fmt.Println(err)
+		return
+	}
+}
+
+type sayHello struct{
+}
+
+
+func (s *sayHello) ServeHTTP(w http.ResponseWriter, r *http.Request){
+	fmt.Println("sayhello")
+	fmt.Fprintf(w,"sayhello")
+}
+
+
+
+func insertSQL(w http.ResponseWriter, r *http.Request)  {
+
+	r.ParseForm()
+
+	result, err:= ioutil.ReadAll(r.Body)
+
+	if err != nil {
+		fmt.Println("请求错误")
+		fmt.Fprintf(w,"请求错误")
+	}
+
+	defer r.Body.Close()
+
+	var s studentslice
+	json.Unmarshal([]byte(result),&s)
+	fmt.Println(s.reqStu)
+
+	affected, err := engines.Insert(s.reqStu)
+
+	for i := 0; i < len(s.reqStu); i++ {
+
+
+		fmt.Println(s.reqStu[i].Id)
+		fmt.Println(s.reqStu[i].Name)
+		fmt.Println(s.reqStu[i].Gender)
+		fmt.Println(s.reqStu[i].Class)
+
+		fmt.Fprintf(w,"插入第 %d 号 ,student 姓名 : %s ,性别 : %d , 班级 : %d\n",s.reqStu[i].Id,s.reqStu[i].Name,s.reqStu[i].Gender,s.reqStu[i].Class)
+
+
+		if err != nil {
+			return
+		}
+
+		fmt.Println(affected)
+	}
+/*
+	stu := new(students)
+	stu.Id = 150
+	stu.Name = "xiaolvlv"
+	stu.Gender = 0
+	stu.Class = 13
+	_, err := engines.Insert(stu)
+	if err != nil {
+		return
+	}
+*/
+
+	fmt.Fprintf(w,"插入第 %d 号 ,student 姓名 : %s ,性别 : %d , 班级 : %d\n",s.reqStu[0].Id,s.reqStu[0].Name,s.reqStu[0].Gender,s.reqStu[0].Class)
+
+	w.Write([]byte("insert finised"))
+
+
+}
+
+
+func getSQL(w http.ResponseWriter, r *http.Request)  {
+
+	r.ParseForm()
+	fmt.Println(r.Form)
+
+	result, err:= ioutil.ReadAll(r.Body)
+
+	if err != nil {
+		fmt.Println("请求错误")
+		fmt.Fprintf(w,"请求错误")
+	}
+
+	defer r.Body.Close()
+
+	var s studentslice
+	json.Unmarshal([]byte(result),&s)
+	fmt.Println(s.reqStu)
+
+	//stu := new(students)
+	//stu.Id = 123
+
+	has,err := engines.Where("id=?",s.reqStu[0].Id).Get(s.reqStu)
+
+	if err != nil {
+		return
+	}
+	if has == true {
+		fmt.Println(has)
+		fmt.Println(s.reqStu)
+		fmt.Fprintf(w,"get 第 %d 号 ,student 姓名 : %s ,性别 : %d , 班级 : %d",s.reqStu[0].Id,s.reqStu[0].Name,s.reqStu[0].Gender,s.reqStu[0].Class)
+
+	}else{
+		fmt.Fprintf(w," 不存在的 ID , 错误代码 ",err)
+	}
+
+}
+
+func deleteSQL(w http.ResponseWriter, r *http.Request)  {
+
+	r.ParseForm()
+	fmt.Println(r.Form)
+
+	result, err:= ioutil.ReadAll(r.Body)
+
+	if err != nil {
+		fmt.Println("请求错误")
+		fmt.Fprintf(w,"请求错误")
+	}
+
+
+	defer r.Body.Close()
+
+	var s studentslice
+	json.Unmarshal([]byte(result),&s)
+	fmt.Println(s.reqStu)
+
+	affectedDelete, err := engines.Where("id=?",s.reqStu[0].Id).Delete(s.reqStu)
+
+	if err != nil {
+		fmt.Println("delete error")
+	}
+
+
+
+	test := new(students)
+	test.Id= 5
+	if  test.Id == 0 {
+		//return Error("miss id")
+		fmt.Fprintf(w,"缺少 id")
+	}
+
+	_, err = engines.Where("id=?",test.Id).Delete(test)
+
+
+	if err != nil {
+		fmt.Println("delete error")
+	}
+
+	fmt.Println(affectedDelete)
+
+}
+
+func updateSQL(w http.ResponseWriter, r *http.Request) {
+
+	stu := new(students)
+	stu.Id = 123
+	stu.Name = "xiao99"
+	stu.Gender = 0
+	stu.Class = 9
+
+	has ,err := engines.Where("id=?",stu.Id).Get(stu)
+
+	if err != nil {
+		fmt.Println("更新成功")
+	}
+
+	if has == false {
+		fmt.Println("更新成功")
+		fmt.Fprintf(w,"更新成功")
+	}
+
+	affectedUpdate,err := engines.Where("id=?",stu.Id).Update(stu)
+
+	if err != nil {
+		fmt.Println("update error")
+	}
+
+	fmt.Println(affectedUpdate)
+	fmt.Fprintf(w,"更新 ID: %d 学生成功, 新名字为 : %s",stu.Id,stu.Name)
+
+
+	test := new(students)
+	test.Id = stu.Id
+
+	_, err = engines.Id(test.Id).MustCols("id").Update(test)
+	if err != nil {
+		//return HandleErr(err)
+		fmt.Println("更新失败")
+	}
+
+
+}
+
+
+func likegetSQL(w http.ResponseWriter, r *http.Request)  {
+
+	stu := make([]students,0)
+	var chars string = "lv"
+
+	//has,err := engines.Where("column like ?", "%"+chars+"%").Get(stu)
+	//if err != nil {
+		//return HandleErr(err)
+	//	fmt.Println("错误")
+//	}
+
+//	if has == false {
+	//	//return SystemError()
+	//	fmt.Println("不存在")
+	//}else {
+
+	engines.Where("sname like ?" ,"%"+chars+"%").Find(&stu)
+
+	for i := 0; i < len(stu); i++ {
+		fmt.Println(stu[i].Id)
+		fmt.Println(stu[i].Name)
+		fmt.Println(stu[i].Gender)
+		fmt.Println(stu[i].Class)
+		fmt.Fprintf(w,"get 第 %d 号 ,student 姓名 : %s ,性别 : %d , 班级 : %d\n",stu[i].Id,stu[i].Name,stu[i].Gender,stu[i].Class)
+
+	}
+}
+
+
+func hello(w http.ResponseWriter, r *http.Request){
+	fmt.Println("hello")
+	fmt.Fprintf(w,"hello")
+}
+
+func testsql(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	fmt.Println(r.Form)
+
+	result, err:= ioutil.ReadAll(r.Body)
+	if err != nil {
+
+	}
+
+	fmt.Println(string(result))
+	fmt.Fprintf(w,"%s",string(result))
 }
 
 
 func main() {
-
-	var proto proto
-	http.HandleFunc("/",Handlers)
+	t:=&sayHello{}
+	http.HandleFunc("/",hello)
+	http.Handle("/index",t)
+	http.HandleFunc("/insert",insertSQL)
+	http.HandleFunc("/get",getSQL)
+	http.HandleFunc("/delete",deleteSQL)
+	http.HandleFunc("/update",updateSQL)
+	http.HandleFunc("/likeget",likegetSQL)
+	http.HandleFunc("/test",testsql)
+	http.ListenAndServe(":443",nil)
 }
-
-func Handlers(w http.ResponseWriter,r *http.Request)  {
-
-}
-
-var engine *xorm.Engine
-
-
-func (tc *TestService) List(ctx context.Context, in *proto.TestListIn, out *proto.TestListOut) error {
-
-	total, err := engine.Get(new(proto.Test))
-	if err != nil {
-		//return HandleErr(err)
-		fmt.Println("获取列表错误")
-	}
-
-	data := make([]*proto.Test, 0)
-
-	// results, err := engine.Sql(sql).Query().ListPage(1,50)
-
-	// err = database.DbEngine.Limit(int(in.PageRows), int(in.PageStart)).Find(&data)
-	err = engine.Limit(int(in.PageRows),int(in.PageStart)).Find(&data)
-
-	if err != nil {
-		//return HandleErr(err)
-		fmt.Println("分页列表错误")
-	}
-	out.Total = total
-	out.Data = data
-
-	return nil
-}
-
-func (tc *TestService) Get(ctx context.Context, in *proto.IdIn, out *proto.TestGetOut) error {
-	if in.Id == "" {
-		return Error("miss id")
-	}
-
-	test := new(proto.Test)
-	//has, err := database.DbEngine.Where("id = ?", in.Id).Get(test)
-
-	has, err := engine.Where("id = ?", in.Id).Get(test)
-
-	if err != nil {
-		return HandleErr(err)
-	}
-	if has == false {
-		return SystemError()
-	}
-
-	out.Test = test
-	return nil
-}
-
-func (tc *TestService) MohuGet(ctx context.Context, in *proto.IdIn, out *proto.TestGetOut) error {
-	if in.Id == "" {
-		return Error("miss id")
-	}
-	
-	test := new(proto.Test)
-
-	has, err := engine.Where("column like ?", "%"+char+"%").Find
-	if err != nil {
-		return HandleErr(err)
-	}
-	if has == false {
-		return SystemError()
-	}
-
-	out.Test = test
-	return nil
-}
-
-func (tc *TestService) Add(ctx context.Context, in *proto.TestAddIn, out *proto.TestAddOut) error {
-	if strings.Trim(in.Name, " ") == "" {
-		return Error("输入姓名")
-	}
-	newTest := new(proto.Test)
-	newTest.Id = util.GetUUID()
-	newTest.Name = in.Name
-	newTest.Status = proto.Status_NORMAL
-	_, err := database.DbEngine.Insert(newTest)
-	if err != nil {
-		return HandleErr(err)
-	}
-	out.Id = newTest.Id
-	return nil
-}
-
-func (tc *TestService) Delete(ctx context.Context, in *proto.IdIn, out *proto.CommonOut) error {
-	if in.Id == "" {
-		return Error("miss id")
-	}
-
-	test := new(proto.Test)
-	has, err := database.DbEngine.Where("id = ?", in.Id).Get(test)
-	if err != nil {
-		return HandleErr(err)
-	}
-	if has == false {
-		return SystemError()
-	}
-	database.DbEngine.Id(in.Id).Delete(&proto.Test{})
-
-	out.Success = true
-	return nil
-}
-
-func (tc *TestService) Update(ctx context.Context, in *proto.TestUpdateIn, out *proto.CommonOut) error {
-	if in.Id == "" {
-		return Error("miss id")
-	}
-
-	if strings.Trim(in.Name, " ") == "" {
-		return Error("输入姓名")
-	}
-
-	test := new(proto.Test)
-	has, err := database.DbEngine.Where("id = ?", in.Id).Get(test)
-	if err != nil {
-		return HandleErr(err)
-	}
-	if has == false {
-		return SystemError()
-	}
-
-	test.Name = in.Name
-
-	_, err = database.DbEngine.Id(test.Id).MustCols("name").Update(test)
-	if err != nil {
-		return HandleErr(err)
-	}
-
-	out.Success = true
-	return nil
-}
-
