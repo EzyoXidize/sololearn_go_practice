@@ -9,18 +9,20 @@ import (
 	"io/ioutil"
 )
 
-type students struct {
+type Students struct {
 	Id 		int 		`json:"id" xorm:"not null pk int 'id'"`
 	Name 	string		`json:"name" xorm:"not null VARCHAR(100) 'sname'"`
 	Gender 	int			`json:"gender" xorm:"not null int 'gender'"`
 	Class	int			`json:"class" xorm:"not null int 'class'"`
 }
 
-type studentslice struct {
-	ReqStu []students
-	ReqID	string
+type Studentslice struct {
+	ReqStu []Students	`json:"reqstu"`
 }
 
+type Chars struct {
+	Chars	string		`json:"chars"`
+}
 
 var engines *xorm.Engine
 
@@ -59,46 +61,36 @@ func insertSQL(w http.ResponseWriter, r *http.Request)  {
 	result, err:= ioutil.ReadAll(r.Body)
 
 	if err != nil {
-		fmt.Println("请求错误")
-		fmt.Fprintf(w,"请求错误")
+		fmt.Println("请求错误~")
+		fmt.Fprintf(w,"请求错误~")
 	}
 
+	resultStr := string(result)
+
+	fmt.Fprint(w,resultStr)
+	fmt.Println(resultStr)
 	r.Body.Close()
 
-	var s studentslice
-	json.Unmarshal([]byte(result),&s)
-	fmt.Println(s.ReqStu)
+	var s Studentslice
 
-	affected, err := engines.Insert(s.ReqStu)
+	if err := json.Unmarshal([]byte(result),&s) ; err == nil {
 
-	//for i := 0; i < len(s.reqStu); i++ {
-
-
-	//	fmt.Println(s.reqStu[i].Id)
-	//	fmt.Println(s.reqStu[i].Name)
-	//	fmt.Println(s.reqStu[i].Gender)
-	//	fmt.Println(s.reqStu[i].Class)
-
-	//fmt.Fprintf(w,"插入第 %d 号 ,student 姓名 : %s ,性别 : %d , 班级 : %d\n",s.reqStu[i].Id,s.reqStu[i].Name,s.reqStu[i].Gender,s.reqStu[i].Class)
-
-
-	//	if err != nil {
-	//		return
-	//	}
-
-	//	fmt.Println(affected)
-	//}
-	/*
-		stu := new(students)
-		stu.Id = 150
-		stu.Name = "xiaolvlv"
-		stu.Gender = 0
-		stu.Class = 13
-		_, err := engines.Insert(stu)
+		fmt.Println(s)
+		affected, err := engines.Insert(&s.ReqStu)
 		if err != nil {
-			return
+			fmt.Println(err)
 		}
-	*/
+		fmt.Println(affected)
+		for i := 0; i < len(s.ReqStu); i++ {
+			fmt.Fprintf(w,"已插入ID为 %d ,名字为 %s ,性别为 %d , 班级为 %d 的学生资料\n",s.ReqStu[i].Id,s.ReqStu[i].Name,s.ReqStu[i].Gender,s.ReqStu[i].Class)
+
+		}
+	}else {
+		fmt.Println(err)
+	}
+
+
+	/*
 	test := new(students)
 	test.Id = 200
 	test.Name = "erkang"
@@ -108,10 +100,7 @@ func insertSQL(w http.ResponseWriter, r *http.Request)  {
 	if err != nil {
 
 	}
-	fmt.Fprintf(w,string(affected))
-	fmt.Fprintf(w,"插入第 %d 号 ,student 姓名 : %s ,性别 : %d , 班级 : %d\n",s.ReqStu[0].Id,s.ReqStu[0].Name,s.ReqStu[0].Gender,s.ReqStu[0].Class)
-	fmt.Fprintf(w,"插入第 %d 号 ,student 姓名 : %s ,性别 : %d , 班级 : %d\n",test.Id,test.Name,test.Gender,test.Class)
-
+	*/
 
 }
 
@@ -119,154 +108,179 @@ func insertSQL(w http.ResponseWriter, r *http.Request)  {
 func getSQL(w http.ResponseWriter, r *http.Request)  {
 
 	r.ParseForm()
-	fmt.Println(r.Form)
 
 	result, err:= ioutil.ReadAll(r.Body)
 
 	if err != nil {
-		fmt.Println("请求错误")
-		fmt.Fprintf(w,"请求错误")
+		fmt.Println("请求错误~")
+		fmt.Fprintf(w,"请求错误~")
 	}
 
 	defer r.Body.Close()
 
-	var s studentslice
-	json.Unmarshal([]byte(result),&s)
-	fmt.Println(s.ReqStu)
+	s := new(Students)
+	if err := json.Unmarshal([]byte(result),&s); err == nil {
+		fmt.Println(s)
 
 	//stu := new(students)
 	//stu.Id = 123
 
-	has,err := engines.Where("id=?",s.ReqStu[0].Id).Get(s.ReqStu)
+		has,err := engines.Where("id=?",s.Id).Get(s)
+		if err != nil {
+			return
+		}
+		if has == true {
+			fmt.Println(has)
+			fmt.Fprintf(w,"查询到学号 %d ,学生姓名 : %s ,性别 : %d , 班级 : %d",s.Id,s.Name,s.Gender,s.Class)
 
-	if err != nil {
-		return
+		}else{
+			fmt.Fprintf(w," 不存在的 ID , 错误代码为",err)
+		}
 	}
-	if has == true {
-		fmt.Println(has)
-		fmt.Println(s.ReqStu)
-		fmt.Fprintf(w,"get 第 %d 号 ,student 姓名 : %s ,性别 : %d , 班级 : %d",s.ReqStu[0].Id,s.ReqStu[0].Name,s.ReqStu[0].Gender,s.ReqStu[0].Class)
-
-	}else{
-		fmt.Fprintf(w," 不存在的 ID , 错误代码 ",err)
-	}
-
 }
+
+
+
+func likegetSQL(w http.ResponseWriter, r *http.Request) {
+
+	r.ParseForm()
+
+	result, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		fmt.Println("请求错误~")
+		fmt.Fprintf(w, "请求错误~")
+	}
+
+	fmt.Println(string(result))
+
+	var s Studentslice
+	chars := new(Chars)
+	if err := json.Unmarshal([]byte(result), &chars); err == nil {
+
+		engines.Where("sname like ?", "%"+chars.Chars+"%").Find(&s.ReqStu)
+
+		fmt.Fprintf(w,"总共找到 %d 个学生 \n搜索词为 %s\n",len(s.ReqStu)-1,chars.Chars)
+
+		for i := 0; i < len(s.ReqStu); i++ {
+			fmt.Fprintf(w, "学号 %d ,student 姓名 : %s ,性别 : %d , 班级 : %d\n",s.ReqStu[i].Id, s.ReqStu[i].Name, s.ReqStu[i].Gender, s.ReqStu[i].Class)
+		}
+	}
+}
+
 
 func deleteSQL(w http.ResponseWriter, r *http.Request)  {
 
+
 	r.ParseForm()
-	fmt.Println(r.Form)
 
 	result, err:= ioutil.ReadAll(r.Body)
 
 	if err != nil {
-		fmt.Println("请求错误")
-		fmt.Fprintf(w,"请求错误")
+		fmt.Println("请求错误~")
+		fmt.Fprintf(w,"请求错误~")
 	}
-
 
 	defer r.Body.Close()
 
-	var s studentslice
-	json.Unmarshal([]byte(result),&s)
-	fmt.Println(s.ReqStu)
+	s := new(Students)
+	if err := json.Unmarshal([]byte(result),&s); err == nil {
+		fmt.Println(s)
 
-	affectedDelete, err := engines.Where("id=?",s.ReqStu[0].Id).Delete(s.ReqStu)
+		has,err := engines.Where("id=?",s.Id).Get(s)
+		if err != nil {
+			return
+		}
+		if has == true {
+			fmt.Println(has)
+			fmt.Fprintf(w,"将删除的学生数据\n学号 %d ,学生姓名 : %s ,性别 : %d , 班级 : %d\n",s.Id,s.Name,s.Gender,s.Class)
 
-	if err != nil {
-		fmt.Println("delete error")
+		}else{
+			fmt.Fprintf(w," 不存在的 ID , 错误代码为",err)
+		}
+
+		affectedDelete, err := engines.Id(s.Id).Delete(s)
+
+		if err != nil {
+			fmt.Println("delete error")
+
+		}
+
+		fmt.Println(affectedDelete)
+		fmt.Fprintf(w,"删除学生数据成功\n")
 	}
-
-
-
-	test := new(students)
+	/*
+	test := new(Students)
 	test.Id= 5
 	if  test.Id == 0 {
 		//return Error("miss id")
 		fmt.Fprintf(w,"缺少 id")
 	}
-
 	_, err = engines.Where("id=?",test.Id).Delete(test)
 
 
 	if err != nil {
 		fmt.Println("delete error")
 	}
-
-	fmt.Println(affectedDelete)
-
+	*/
 }
 
 func updateSQL(w http.ResponseWriter, r *http.Request) {
-
-	stu := new(students)
+	/*
+	stu := new(Students)
 	stu.Id = 123
 	stu.Name = "xiao99"
 	stu.Gender = 0
 	stu.Class = 9
+	*/
 
-	has ,err := engines.Where("id=?",stu.Id).Get(stu)
+	r.ParseForm()
 
-	if err != nil {
-		fmt.Println("更新成功")
-	}
-
-	if has == false {
-		fmt.Println("更新成功")
-		fmt.Fprintf(w,"更新成功")
-	}
-
-	affectedUpdate,err := engines.Where("id=?",stu.Id).Update(stu)
+	result, err:= ioutil.ReadAll(r.Body)
 
 	if err != nil {
-		fmt.Println("update error")
+		fmt.Println("请求错误~")
+		fmt.Fprintf(w,"请求错误~")
 	}
 
-	fmt.Println(affectedUpdate)
-	fmt.Fprintf(w,"更新 ID: %d 学生成功, 新名字为 : %s",stu.Id,stu.Name)
+	resultStr := string(result)
 
+	fmt.Fprint(w,resultStr)
+	fmt.Println(resultStr)
+	r.Body.Close()
 
-	test := new(students)
-	test.Id = stu.Id
+	var s Studentslice
 
-	_, err = engines.Id(test.Id).MustCols("id").Update(test)
-	if err != nil {
-		//return HandleErr(err)
-		fmt.Println("更新失败")
+	if err := json.Unmarshal([]byte(result),&s) ; err == nil {
+		for i := 0; i < len(s.ReqStu); i++ {
+
+			has,err := engines.Where("id=?",s.ReqStu[i].Id).Get(&s.ReqStu)
+
+			if err != nil {
+				fmt.Println("学号存在,准备更新数据")
+			}
+
+			if has == true {
+				fmt.Println("学号不存在")
+				fmt.Fprintf(w,"学号不存在")
+
+			}else{
+				affectedUpdate,err := engines.Id(s.ReqStu[i].Id).Cols("gender").Update(s.ReqStu)
+
+				if err != nil {
+					fmt.Println("update error")
+				}
+
+				fmt.Println(affectedUpdate)
+				fmt.Fprintf(w," %d %s %d %d",s.ReqStu[i].Id,s.ReqStu[i].Name,s.ReqStu[i].Gender,s.ReqStu[i].Class)
+			}
+		}
+	}else {
+		fmt.Println(err)
 	}
-
 
 }
 
 
-func likegetSQL(w http.ResponseWriter, r *http.Request)  {
-
-	stu := make([]students,0)
-	var chars string = "lv"
-
-	//has,err := engines.Where("column like ?", "%"+chars+"%").Get(stu)
-	//if err != nil {
-		//return HandleErr(err)
-	//	fmt.Println("错误")
-//	}
-
-//	if has == false {
-	//	//return SystemError()
-	//	fmt.Println("不存在")
-	//}else {
-
-	engines.Where("sname like ?" ,"%"+chars+"%").Find(&stu)
-
-	for i := 0; i < len(stu); i++ {
-		fmt.Println(stu[i].Id)
-		fmt.Println(stu[i].Name)
-		fmt.Println(stu[i].Gender)
-		fmt.Println(stu[i].Class)
-		fmt.Fprintf(w,"get 第 %d 号 ,student 姓名 : %s ,性别 : %d , 班级 : %d\n",stu[i].Id,stu[i].Name,stu[i].Gender,stu[i].Class)
-
-	}
-}
 
 
 func hello(w http.ResponseWriter, r *http.Request){
@@ -284,7 +298,7 @@ func testsql(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Println(string(result))
-	fmt.Fprintf(w,"%s",string(result))
+	fmt.Fprintf(w,"%s",result)
 }
 
 
