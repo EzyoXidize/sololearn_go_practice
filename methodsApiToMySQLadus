@@ -244,40 +244,36 @@ func updateSQL(w http.ResponseWriter, r *http.Request) {
 
 	resultStr := string(result)
 
-	fmt.Fprint(w,resultStr)
+	fmt.Fprint(w,"%s\n",resultStr)
 	fmt.Println(resultStr)
 	r.Body.Close()
 
-	var s Studentslice
+	s := new(Students)
 
 	if err := json.Unmarshal([]byte(result),&s) ; err == nil {
-		for i := 0; i < len(s.ReqStu); i++ {
 
-			has,err := engines.Where("id=?",s.ReqStu[i].Id).Get(&s.ReqStu)
+		has,err := engines.Where("id=?",s.Id).Get(s)
+		if err != nil {
+			fmt.Println("数据错误")
+		}
 
+		if has == false {
+			fmt.Println("\n学号存在,准备更新\n")
+			fmt.Fprintf(w,"\n学号存在,准备更新\n")
+
+			affectedUpdate,err := engines.Id(s.Id).MustCols("gender").Update(s)
 			if err != nil {
-				fmt.Println("学号存在,准备更新数据")
-			}
-
-			if has == true {
-				fmt.Println("学号不存在")
-				fmt.Fprintf(w,"学号不存在")
-
-			}else{
-				affectedUpdate,err := engines.Id(s.ReqStu[i].Id).Cols("gender").Update(s.ReqStu)
-
-				if err != nil {
 					fmt.Println("update error")
-				}
-
-				fmt.Println(affectedUpdate)
-				fmt.Fprintf(w," %d %s %d %d",s.ReqStu[i].Id,s.ReqStu[i].Name,s.ReqStu[i].Gender,s.ReqStu[i].Class)
 			}
+
+			fmt.Println(affectedUpdate)
+			fmt.Fprintf(w," %d %s %d %d",s.Id,s.Name,s.Gender,s.Class)
+		}else {
+			fmt.Fprintf(w,"学号不存在")
 		}
 	}else {
-		fmt.Println(err)
+		fmt.Fprintf(w,"请求错误")
 	}
-
 }
 
 
