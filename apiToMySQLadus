@@ -104,6 +104,15 @@ func insertSQL(w http.ResponseWriter, r *http.Request)  {
 
 }
 
+type myError struct {
+	code 	int
+	details string
+}
+
+func (e *myError) Error() string {
+	return fmt.Sprintf("code : %d ," +
+		"details : %s",e.code,e.details)
+}
 
 func getSQL(w http.ResponseWriter, r *http.Request)  {
 
@@ -125,16 +134,16 @@ func getSQL(w http.ResponseWriter, r *http.Request)  {
 	//stu := new(students)
 	//stu.Id = 123
 
-		has,err := engines.Where("id=?",s.Id).Get(s)
+		has,err := engines.Where("id=?",s.Id).Get(&s)
 		if err != nil {
-			return
+			fmt.Println(err)
 		}
 		if has == true {
 			fmt.Println(has)
 			fmt.Fprintf(w,"查询到学号 %d ,学生姓名 : %s ,性别 : %d , 班级 : %d",s.Id,s.Name,s.Gender,s.Class)
 
 		}else{
-			fmt.Fprintf(w," 不存在的 ID , 错误代码为",err)
+			fmt.Fprintf(w," 不存在的 ID")
 		}
 	}
 }
@@ -202,7 +211,6 @@ func deleteSQL(w http.ResponseWriter, r *http.Request)  {
 
 		if err != nil {
 			fmt.Println("delete error")
-
 		}
 
 		fmt.Println(affectedDelete)
@@ -258,7 +266,7 @@ func updateSQL(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if has == false {
-			fmt.Println("\n学号存在,准备更新\n")
+			fmt.Println("学号存在,准备更新\n")
 			fmt.Fprintf(w,"\n学号存在,准备更新\n")
 
 			affectedUpdate,err := engines.Id(s.Id).MustCols("gender").Update(s)
