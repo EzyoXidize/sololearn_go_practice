@@ -267,9 +267,9 @@ func updateSQL(w http.ResponseWriter, r *http.Request) {
 			}
 
 			fmt.Println(affectedUpdate)
-			fmt.Fprintf(w," %d %s %d %d",s.Id,s.Name,s.Gender,s.Class)
+			fmt.Fprintf(w,"更新的学生数据为\n学号 %d 姓名 %s 性别 %d 班级 %d",s.Id,s.Name,s.Gender,s.Class)
 		}else {
-			fmt.Fprintf(w,"学号不存在")
+			fmt.Fprintf(w,"已有相同数据")
 		}
 	}else {
 		fmt.Fprintf(w,"请求错误")
